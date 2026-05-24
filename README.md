@@ -42,12 +42,13 @@ npm install -g vercel
 vercel
 ```
 
-### 4. Add Vercel KV Storage
+### 4. Add Upstash Redis Storage
 
 In your Vercel dashboard:
-1. Go to **Storage** → **Create Database** → **KV**
-2. Connect it to your project
-3. Vercel auto-populates the `KV_*` env vars
+1. Go to **Storage** → **Create** next to **Upstash**
+2. Choose **Redis** → create the database
+3. Connect it to your project
+4. Vercel auto-populates `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 
 ### 5. Confirm cron is active
 
