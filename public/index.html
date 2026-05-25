@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>The Brief</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#09090f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="The Brief" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #09090f; --surface: rgba(255,255,255,0.03); --surface-hover: rgba(255,255,255,0.055);
+      --border: rgba(255,255,255,0.07); --border-strong: rgba(255,255,255,0.12);
+      --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #475569;
+      --ai: #38bdf8; --ai-dim: rgba(56,189,248,0.12); --ai-glow: rgba(56,189,248,0.22);
+      --music: #f59e0b; --music-dim: rgba(245,158,11,0.12); --music-glow: rgba(245,158,11,0.22);
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+      --mono: 'DM Mono', monospace;
+      --radius: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text-primary); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100%; overflow-x: hidden; }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; background: none; font-family: var(--sans); }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+
+    #app { display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 640px; padding: 0 16px 100px; }
+
+    header { padding: 48px 0 28px; }
+    .date-label { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    h1 { font-family: var(--serif); font-size: clamp(36px,10vw,52px); font-weight: 400; letter-spacing: -.01em; line-height: 1; }
+    .accent-line { width: 32px; height: 1px; background: var(--ai); margin-top: 14px; transition: background .3s; }
+    .accent-line.music { background: var(--music); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { flex: 1; padding: 12px 16px; border-radius: var(--radius); background: transparent; border: 1px solid var(--border); text-align: left; transition: all .25s ease; cursor: pointer; }
+    .tab.active-ai { background: var(--surface); border-color: var(--ai); box-shadow: 0 0 20px var(--ai-glow); color: var(--ai); }
+    .tab.active-music { background: var(--surface); border-color: var(--music); box-shadow: 0 0 20px var(--music-glow); color: var(--music); }
+    .tab:not(.active-ai):not(.active-music) { color: var(--text-muted); }
+    .tab-sub { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin-bottom: 3px; }
+    .tab-label { font-size: 13px; font-weight: 500; }
+
+    /* Toolbar */
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
+    .updated { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .icon-btn { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; display: flex; align-items: center; gap: 5px; transition: all .2s; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-muted); }
+    .icon-btn:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+    .icon-btn.active-ai { border-color: var(--ai); color: var(--ai); background: var(--ai-dim); }
+    .icon-btn.active-music { border-color: var(--music); color: var(--music); background: var(--music-dim); }
+    .icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .refresh-btn { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; transition: color .3s; color: var(--ai); }
+    .refresh-btn.music { color: var(--music); }
+    .refresh-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .spin { display: inline-block; animation: spin .8s linear infinite; }
+
+    /* Voice bar */
+    .voice-bar {
+      display: none; align-items: center; gap: 12px; padding: 12px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 16px;
+    }
+    .voice-bar.visible { display: flex; }
+    .voice-info { flex: 1; }
+    .voice-card-label { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+    .voice-title { font-family: var(--serif); font-size: 14px; color: var(--text-primary); line-height: 1.3; }
+    .voice-controls { display: flex; align-items: center; gap: 8px; }
+    .voice-ctrl { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .2s; border: 1px solid var(--border); color: var(--text-secondary); }
+    .voice-ctrl:hover { border-color: var(--border-strong); color: var(--text-primary); }
+    .voice-ctrl.play-pause { background: var(--ai); border-color: var(--ai); color: var(--bg); font-size: 14px; }
+    .voice-ctrl.play-pause.music { background: var(--music); border-color: var(--music); }
+    .voice-progress { font-family: var(--mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+
+    /* Cards */
+    .cards { display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; transition: background .2s, border-color .2s; animation: fadeUp .4s ease forwards; opacity: 0; }
+    .card:hover { background: var(--surface-hover); }
+    .card.ai { border-left: 3px solid var(--ai); }
+    .card.music { border-left: 3px solid var(--music); }
+    .card.reading { border-color: var(--ai); background: var(--ai-dim); }
+    .card.reading.music { border-color: var(--music); background: var(--music-dim); }
+    .card-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .card-num { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; opacity: .8; }
+    .card-num.ai { color: var(--ai); }
+    .card-num.music { color: var(--music); }
+    .card-source { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; padding: 2px 8px; border-radius: 20px; color: var(--text-muted); }
+    .card-source.ai { background: var(--ai-dim); }
+    .card-source.music { background: var(--music-dim); }
+    .card-title { font-family: var(--serif); font-size: 18px; font-weight: 500; line-height: 1.35; color: var(--text-primary); margin-bottom: 10px; }
+    .card-summary { font-family: var(--sans); font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); font-weight: 300; margin-bottom: 10px; }
+    .card-why { font-family: var(--serif); font-size: 13px; font-style: italic; line-height: 1.55; opacity: .8; margin-bottom: 14px; padding-left: 10px; border-left: 1px solid currentColor; }
+    .card-why.ai { color: var(--ai); }
+    .card-why.music { color: var(--music); }
+    .card-link { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; opacity: .75; transition: opacity .15s; }
+    .card-link:hover { opacity: 1; }
+    .card-link.ai { color: var(--ai); }
+    .card-link.music { color: var(--music); }
+
+    /* Skeleton */
+    .skeleton { display: flex; flex-direction: column; gap: 12px; }
+    .skeleton-item { height: 120px; border-radius: var(--radius); background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.04) 75%); background-size: 200% auto; animation: shimmer 1.5s linear infinite; }
+
+    /* Empty */
+    .empty { text-align: center; padding: 60px 20px; }
+    .empty-title { font-family: var(--serif); font-size: 22px; color: var(--text-secondary); margin-bottom: 8px; font-style: italic; }
+    .empty-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+    .gen-btn { padding: 10px 24px; border-radius: 40px; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-primary); font-family: var(--mono); font-size: 13px; letter-spacing: .06em; }
+    .gen-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Error */
+    .error { padding: 12px 16px; border-radius: var(--radius); background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); color: #fca5a5; font-size: 13px; margin-bottom: 16px; }
+
+    /* Voice picker modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:flex-end; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#13131f; border:1px solid var(--border-strong); border-radius:16px 16px 0 0; width:100%; max-width:640px; max-height:70vh; overflow:hidden; display:flex; flex-direction:column; }
+    .modal-header { padding:20px 20px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); }
+    .modal-title { font-family:var(--serif); font-size:20px; font-weight:500; }
+    .modal-close { font-family:var(--mono); font-size:11px; color:var(--text-muted); letter-spacing:.06em; cursor:pointer; }
+    .modal-body { overflow-y:auto; padding:12px; }
+    .voice-option { padding:12px 14px; border-radius:var(--radius); border:1px solid var(--border); margin-bottom:8px; cursor:pointer; transition:all .2s; display:flex; justify-content:space-between; align-items:center; }
+    .voice-option:hover { background:var(--surface-hover); border-color:var(--border-strong); }
+    .voice-option.selected-ai { border-color:var(--ai); background:var(--ai-dim); }
+    .voice-option.selected-music { border-color:var(--music); background:var(--music-dim); }
+    .voice-name { font-family:var(--sans); font-size:14px; color:var(--text-primary); }
+    .voice-lang { font-family:var(--mono); font-size:10px; color:var(--text-muted); letter-spacing:.06em; margin-top:2px; }
+    .voice-check { font-size:14px; }
+    .modal-empty { padding:32px; text-align:center; font-family:var(--serif); font-style:italic; color:var(--text-muted); font-size:16px; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes shimmer { 0% { background-position:-200% center; } 100% { background-position:200% center; } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="container">
+    <header>
+      <p class="date-label" id="dateLabel"></p>
+      <h1>The Brief</h1>
+      <div class="accent-line" id="accentLine"></div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active-ai" id="tabAI" onclick="switchTab('ai-safety')">
+        <div class="tab-sub">Morning</div>
+        <div class="tab-label">AI Safety</div>
+      </button>
+      <button class="tab" id="tabMusic" onclick="switchTab('music')">
+        <div class="tab-sub">Evening</div>
+        <div class="tab-label">Music Biz</div>
+      </button>
+    </div>
+
+    <div class="toolbar">
+      <span class="updated" id="updatedLabel"></span>
+      <div class="toolbar-right">
+        <button class="icon-btn" id="notifBtn" onclick="toggleNotifications()">🔔 REMINDERS</button>
+        <button class="icon-btn" id="voicePickBtn" onclick="openVoicePicker()">🎙 VOICE</button>
+        <button class="icon-btn" id="readBtn" onclick="toggleVoice()">▶ LISTEN</button>
+        <button class="refresh-btn ai" id="refreshBtn" onclick="handleRefresh()">
+          <span id="refreshIcon">↻</span>
+          <span id="refreshLabel">REFRESH</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Voice player bar -->
+    <div class="voice-bar" id="voiceBar">
+      <div class="voice-info">
+        <div class="voice-card-label" id="voiceCardLabel">STORY 1 OF 5</div>
+        <div class="voice-title" id="voiceCardTitle">Loading...</div>
+      </div>
+      <div class="voice-controls">
+        <button class="voice-ctrl" onclick="voicePrev()" title="Previous">◀</button>
+        <button class="voice-ctrl play-pause" id="playPauseBtn" onclick="voicePlayPause()">⏸</button>
+        <button class="voice-ctrl" onclick="voiceNext()" title="Next">▶</button>
+        <button class="voice-ctrl" onclick="stopVoice()" title="Stop" style="font-size:11px; letter-spacing:.04em; width:auto; padding:0 8px; border-radius:10px; font-family:var(--mono);">STOP</button>
+      </div>
+    </div>
+
+    <div id="errorBox" class="error" style="display:none"></div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<!-- Voice picker modal -->
+<div class="modal-overlay" id="voiceModal" onclick="closeVoicePicker(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Choose a Voice</span>
+      <button class="modal-close" onclick="closeVoicePicker()">✕ CLOSE</button>
+    </div>
+    <div class="modal-body" id="voiceList"></div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  let activeTab = 'ai-safety';
+  let briefs = { 'ai-safety': null, music: null };
+  let loading = true;
+  let refreshing = false;
+
+  // Voice state
+  let voiceActive = false;
+  let voiceIndex = 0;
+  let voicePaused = false;
+  let currentUtterance = null;
+  let availableVoices = [];
+  let selectedVoiceName = localStorage.getItem('selected_voice') || '';
+
+  function loadVoices() {
+    availableVoices = window.speechSynthesis.getVoices();
+    // Voices load async on some browsers
+    if (availableVoices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        availableVoices = window.speechSynthesis.getVoices();
+      };
+    }
+  }
+
+  function getSelectedVoice() {
+    if (!selectedVoiceName) return null;
+    return availableVoices.find(v => v.name === selectedVoiceName) || null;
+  }
+
+  function openVoicePicker() {
+    const voices = availableVoices.length ? availableVoices : window.speechSynthesis.getVoices();
+    const list = document.getElementById('voiceList');
+    const selCls = isAI() ? 'selected-ai' : 'selected-music';
+    const accent = isAI() ? 'var(--ai)' : 'var(--music)';
+
+    if (!voices.length) {
+      list.innerHTML = '<div class="modal-empty">No voices found on this device</div>';
+    } else {
+      // Sort: English first, then by name
+      const sorted = [...voices].sort((a, b) => {
+        const aEn = a.lang.startsWith('en') ? 0 : 1;
+        const bEn = b.lang.startsWith('en') ? 0 : 1;
+        return aEn - bEn || a.name.localeCompare(b.name);
+      });
+      list.innerHTML = sorted.map(v => `
+        <div class="voice-option ${v.name === selectedVoiceName ? selCls : ''}" onclick="selectVoice('${v.name.replace(/'/g,"\\'")}')">
+          <div>
+            <div class="voice-name">${v.name}</div>
+            <div class="voice-lang">${v.lang}${v.localService ? ' · LOCAL' : ' · ONLINE'}</div>
+          </div>
+          <span class="voice-check">${v.name === selectedVoiceName ? '✓' : ''}</span>
+        </div>`).join('');
+    }
+    document.getElementById('voiceModal').className = 'modal-overlay open';
+  }
+
+  function selectVoice(name) {
+    selectedVoiceName = name;
+    localStorage.setItem('selected_voice', name);
+    // Update button to show selection
+    const btn = document.getElementById('voicePickBtn');
+    const shortName = name.split(' ')[0];
+    btn.textContent = '🎙 ' + shortName.toUpperCase();
+    // Re-render list with new selection
+    openVoicePicker();
+    // Preview the voice
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance('This is ' + name);
+    const v = availableVoices.find(v => v.name === name);
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }
+
+  function closeVoicePicker(e) {
+    if (e && e.target !== document.getElementById('voiceModal')) return;
+    document.getElementById('voiceModal').className = 'modal-overlay';
+    window.speechSynthesis.cancel();
+  }
+
+  // Notif state
+  let notifEnabled = localStorage.getItem('notif_enabled') === 'true';
+
+  const VAPID_PUBLIC_KEY = 'BBMnrq7bQNJHsOH5BH6IVfm6uCTWyhsLJZ9eCgFHyRfq0gpe3zxtQbhBj4T4v4t7rkyOuDmdFMKV0EsNAKonEt8';
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const h = Math.floor(diff / 3600000), m = Math.floor(diff / 60000);
+    if (h > 0) return h + 'h ago';
+    if (m > 0) return m + 'm ago';
+    return 'just now';
+  }
+  function formatDate(d) {
+    return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  }
+  function setError(msg) {
+    const box = document.getElementById('errorBox');
+    if (msg) { box.textContent = msg; box.style.display = 'block'; }
+    else box.style.display = 'none';
+  }
+  function currentItems() {
+    return briefs[activeTab]?.items || [];
+  }
+  function isAI() { return activeTab === 'ai-safety'; }
+
+  // ── Tab switch ─────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    if (voiceActive) stopVoice();
+    activeTab = tab;
+    document.getElementById('tabAI').className = 'tab ' + (tab === 'ai-safety' ? 'active-ai' : '');
+    document.getElementById('tabMusic').className = 'tab ' + (tab === 'music' ? 'active-music' : '');
+    document.getElementById('accentLine').className = 'accent-line' + (tab === 'music' ? ' music' : '');
+    document.getElementById('refreshBtn').className = 'refresh-btn ' + (tab === 'music' ? 'music' : 'ai');
+    renderContent();
+    updateMeta();
+  }
+
+  function updateMeta() {
+    const brief = briefs[activeTab];
+    document.getElementById('updatedLabel').textContent = brief?.updatedAt ? 'Updated ' + timeAgo(brief.updatedAt) : (loading ? '' : 'Not generated yet');
+    const nb = document.getElementById('notifBtn');
+    const cls = isAI() ? 'active-ai' : 'active-music';
+    nb.className = 'icon-btn' + (notifEnabled ? ' ' + cls : '');
+    nb.textContent = (notifEnabled ? '🔔' : '🔕') + ' REMINDERS';
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  function renderSkeleton() {
+    document.getElementById('content').innerHTML = '<div class="skeleton">' +
+      [1,2,3,4,5].map(i => `<div class="skeleton-item" style="animation-delay:${i*.1}s"></div>`).join('') + '</div>';
+  }
+  function renderEmpty() {
+    document.getElementById('content').innerHTML = `
+      <div class="empty">
+        <p class="empty-title">No brief yet for today</p>
+        <p class="empty-sub">Generate your first brief to get started</p>
+        <button class="gen-btn" onclick="handleRefresh()">Generate Brief</button>
+      </div>`;
+  }
+  function renderCards(items) {
+    const cls = isAI() ? 'ai' : 'music';
+    document.getElementById('content').innerHTML = '<div class="cards">' +
+      items.map((item, i) => `
+        <div class="card ${cls}" id="card-${i}" style="animation-delay:${i*.07}s">
+          <div class="card-meta">
+            <span class="card-num ${cls}">${String(i+1).padStart(2,'0')}</span>
+            <span class="card-source ${cls}">${item.source||''}</span>
+          </div>
+          <h3 class="card-title">${item.title||''}</h3>
+          <p class="card-summary">${item.summary||''}</p>
+          ${item.why ? `<p class="card-why ${cls}">${item.why}</p>` : ''}
+          ${item.url ? `<a class="card-link ${cls}" href="${item.url}" target="_blank" rel="noopener">READ FULL ARTICLE →</a>` : ''}
+        </div>`).join('') + '</div>';
+  }
+  function renderContent() {
+    if (loading) { renderSkeleton(); return; }
+    const items = currentItems();
+    if (!items.length) { renderEmpty(); return; }
+    renderCards(items);
+  }
+
+  // ── Fetch ──────────────────────────────────────────────────────────────
+  async function fetchBrief(category) {
+    const res = await fetch('/api/briefs?category=' + category);
+    briefs[category] = await res.json();
+  }
+  async function handleRefresh() {
+    if (refreshing) return;
+    refreshing = true; setError(null);
+    document.getElementById('refreshIcon').className = 'spin';
+    document.getElementById('refreshLabel').textContent = 'REFRESHING…';
+    document.getElementById('refreshBtn').disabled = true;
+    try {
+      const res = await fetch('/api/refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ category: activeTab }) });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error||'Refresh failed'); }
+      await fetchBrief(activeTab);
+      renderContent(); updateMeta();
+    } catch(err) { setError(err.message); }
+    finally {
+      refreshing = false;
+      document.getElementById('refreshIcon').className = '';
+      document.getElementById('refreshLabel').textContent = 'REFRESH';
+      document.getElementById('refreshBtn').disabled = false;
+    }
+  }
+
+  // ── Voice Reader ───────────────────────────────────────────────────────
+  function toggleVoice() {
+    const items = currentItems();
+    if (!items.length) return;
+    if (voiceActive) { stopVoice(); return; }
+    voiceActive = true;
+    voiceIndex = 0;
+    voicePaused = false;
+    document.getElementById('readBtn').className = 'icon-btn ' + (isAI() ? 'active-ai' : 'active-music');
+    document.getElementById('readBtn').textContent = '■ STOP';
+    document.getElementById('voiceBar').className = 'voice-bar visible';
+    speakCard(voiceIndex);
+  }
+
+  function speakCard(index) {
+    const items = currentItems();
+    if (index >= items.length) { stopVoice(); return; }
+    const item = items[index];
+    voiceIndex = index;
+
+    // Highlight card
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('reading'));
+    const card = document.getElementById('card-' + index);
+    if (card) { card.classList.add('reading'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+
+    // Update voice bar
+    document.getElementById('voiceCardLabel').textContent = `STORY ${index+1} OF ${items.length}`;
+    document.getElementById('voiceCardTitle').textContent = item.title || '';
+    document.getElementById('playPauseBtn').textContent = '⏸';
+    document.getElementById('playPauseBtn').className = 'voice-ctrl play-pause' + (isAI() ? '' : ' music');
+
+    // Speak
+    window.speechSynthesis.cancel();
+    const text = [
+      item.title,
+      item.summary,
+      item.why ? 'Why it matters: ' + item.why : ''
+    ].filter(Boolean).join('. ');
+
+    currentUtterance = new SpeechSynthesisUtterance(text);
+    currentUtterance.rate = 0.95;
+    currentUtterance.pitch = 1;
+    currentUtterance.lang = 'en-GB';
+    const selectedVoice = getSelectedVoice();
+    if (selectedVoice) currentUtterance.voice = selectedVoice;
+    currentUtterance.onend = () => {
+      if (!voicePaused && voiceActive) {
+        setTimeout(() => speakCard(voiceIndex + 1), 800);
+      }
+    };
+    window.speechSynthesis.speak(currentUtterance);
+  }
+
+  function voicePlayPause() {
+    if (!voiceActive) return;
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      voicePaused = true;
+      document.getElementById('playPauseBtn').textContent = '▶';
+    } else {
+      window.speechSynthesis.resume();
+      voicePaused = false;
+      document.getElementById('playPauseBtn').textContent = '⏸';
+    }
+  }
+
+  function voiceNext() {
+    if (!voiceActive) return;
+    voicePaused = false;
+    speakCard(voiceIndex + 1);
+  }
+
+  function voicePrev() {
+    if (!voiceActive) return;
+    voicePaused = false;
+    speakCard(Math.max(0, voiceIndex - 1));
+  }
+
+  function stopVoice() {
+    window.speechSynthesis.cancel();
+    voiceActive = false; voicePaused = false;
+    document.getElementById('readBtn').className = 'icon-btn';
+    document.getElementById('readBtn').textContent = '▶ LISTEN';
+    document.getElementById('voiceBar').className = 'voice-bar';
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('reading'));
+  }
+
+  // ── Push Notifications ─────────────────────────────────────────────────
+  function urlB64ToUint8Array(b64) {
+    const padding = '='.repeat((4 - b64.length % 4) % 4);
+    const base64 = (b64 + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  async function toggleNotifications() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      setError('Push notifications not supported in this browser'); return;
+    }
+    if (notifEnabled) {
+      // Disable
+      notifEnabled = false;
+      localStorage.setItem('notif_enabled', 'false');
+      updateMeta();
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { setError('Notification permission denied'); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub }),
+      });
+      notifEnabled = true;
+      localStorage.setItem('notif_enabled', 'true');
+      updateMeta();
+      // Show confirmation
+      new Notification('The Brief', { body: "You'll be notified when your daily brief is ready ✓", icon: '/icon-192.png' });
+    } catch(err) { setError('Could not enable notifications: ' + err.message); }
+  }
+
+  // ── Service Worker ─────────────────────────────────────────────────────
+  async function init() {
+    document.getElementById('dateLabel').textContent = formatDate(new Date());
+    renderSkeleton();
+    loadVoices();
+    // Restore voice button label
+    if (selectedVoiceName) {
+      document.getElementById('voicePickBtn').textContent = '🎙 ' + selectedVoiceName.split(' ')[0].toUpperCase();
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    try {
+      await Promise.all([fetchBrief('ai-safety'), fetchBrief('music')]);
+    } catch(e) { setError(e.message); }
+    loading = false;
+    renderContent();
+    updateMeta();
+  }
+
+  init();
+</script>
+</body>
+</html>

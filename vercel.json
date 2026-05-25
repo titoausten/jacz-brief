@@ -1,0 +1,12 @@
+{
+  "framework": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/api/briefs", "destination": "/api/briefs" },
+    { "source": "/api/refresh", "destination": "/api/refresh" },
+    { "source": "/api/cron", "destination": "/api/cron" }
+  ],
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 6 * * *" }
+  ]
+}
