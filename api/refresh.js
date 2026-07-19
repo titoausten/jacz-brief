@@ -1,5 +1,5 @@
 const { Redis } = require('@upstash/redis');
-const { fetchFeedItems, AI_SAFETY_FEEDS, MUSIC_FEEDS } = require('../lib/feeds');
+const { fetchFeedItems, AI_SAFETY_FEEDS, AI_NEWS_FEEDS, MUSIC_FEEDS } = require('../lib/feeds');
 const { generateBrief } = require('../lib/summarize');
 
 const kv = new Redis({
@@ -19,6 +19,11 @@ module.exports = async function handler(req, res) {
       const items = await fetchFeedItems(AI_SAFETY_FEEDS);
       const brief = await generateBrief(items, 'ai-safety');
       await kv.set('brief:ai-safety', JSON.stringify({ items: brief, updatedAt: timestamp }));
+    }
+    if (!category || category === 'ai-news') {
+      const items = await fetchFeedItems(AI_NEWS_FEEDS);
+      const brief = await generateBrief(items, 'ai-news');
+      await kv.set('brief:ai-news', JSON.stringify({ items: brief, updatedAt: timestamp }));
     }
     if (!category || category === 'music') {
       const items = await fetchFeedItems(MUSIC_FEEDS);
