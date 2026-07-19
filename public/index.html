@@ -243,7 +243,11 @@
     const box = document.getElementById('errorBox');
     if (msg){box.textContent=msg;box.style.display='block';}else box.style.display='none';
   }
-  function currentItems() { return briefs[activeTab]?.items || []; }
+  function currentItems() {
+    const b = briefs[activeTab];
+    if (!b || !b.items || !Array.isArray(b.items)) return [];
+    return b.items;
+  }
 
   // ── Tab switch ─────────────────────────────────────────────────────────
   function switchTab(tab) {
