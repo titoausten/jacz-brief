@@ -1,5 +1,5 @@
 const { Redis } = require('@upstash/redis');
-const { fetchFeedItems, AI_SAFETY_FEEDS, MUSIC_FEEDS } = require('../lib/feeds');
+const { fetchFeedItems, AI_SAFETY_FEEDS, AI_NEWS_FEEDS,MUSIC_FEEDS } = require('../lib/feeds');
 const { generateBrief } = require('../lib/summarize');
 const webpush = require('web-push');
 
@@ -30,14 +30,22 @@ module.exports = async function handler(req, res) {
   }
   try {
     const timestamp = new Date().toISOString();
-    const [aiItems, musicItems] = await Promise.all([fetchFeedItems(AI_SAFETY_FEEDS), fetchFeedItems(MUSIC_FEEDS)]);
-    const aiBrief = await generateBrief(aiItems, 'ai-safety');
-    const musicBrief = await generateBrief(musicItems, 'music');
+    const [aiItems, aiNewsItems, musicItems] = await Promise.all([
+      fetchFeedItems(AI_SAFETY_FEEDS),
+      fetchFeedItems(AI_NEWS_FEEDS),
+      fetchFeedItems(MUSIC_FEEDS),
+    ]);
+    const [aiBrief, aiNewsBrief, musicBrief] = await Promise.all([
+      generateBrief(aiItems, 'ai-safety'),
+      generateBrief(aiNewsItems, 'ai-news'),
+      generateBrief(musicItems, 'music'),
+    ]);
     await Promise.all([
       kv.set('brief:ai-safety', JSON.stringify({ items: aiBrief, updatedAt: timestamp })),
+      kv.set('brief:ai-news', JSON.stringify({ items: aiNewsBrief, updatedAt: timestamp })),
       kv.set('brief:music', JSON.stringify({ items: musicBrief, updatedAt: timestamp })),
     ]);
-    await sendNotifications('☀️ Your Brief is Ready', 'Top 5 AI Safety + Music Business stories — tap to read');
+    await sendNotifications('☀️ Your Brief is Ready', 'Top 5 stories across AI Safety, AI News & Music Business stories — tap to read');
     return res.json({ success: true, timestamp });
   } catch (err) {
     return res.status(500).json({ error: err.message });
